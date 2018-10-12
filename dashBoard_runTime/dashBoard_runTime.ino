@@ -1,3 +1,5 @@
+
+
 #include <Adafruit_SSD1306.h>
 Adafruit_SSD1306 display(4);
 
@@ -11,20 +13,16 @@ int led = 12;
 int button = 2;
 volatile byte state = LOW ;
 int count;
-String zeit;
+byte time[2];
+
 void setup() {
   count = 0;
   Wire.begin();
   attachInterrupt(digitalPinToInterrupt(button), counT, RISING);
   Serial.begin(9600);
   display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR);
-
   display.clearDisplay();
   display.setTextColor(WHITE);
-  display.setTextSize(4);
-
-
-
 }
 // counT zählt die knopfdrücke und schaltet die entsprechenden Displays durch
 void counT()
@@ -32,8 +30,7 @@ void counT()
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   // If interrupts come faster than 200ms, assume it's a bounce and ignore
-  if (interrupt_time - last_interrupt_time > 200)
-  {
+  if (interrupt_time - last_interrupt_time > 200) {
     //Do ya Thing
     count++;
     if (count > 4) {
@@ -52,28 +49,11 @@ void leseDS3231zeit(byte *sekunde, byte *minute, byte *stunde) {
   *minute = bcdToDec(Wire.read());
   *stunde = bcdToDec(Wire.read() & 0x3f);
 }
-void zeigeZeit() {
+void getZeit() {
   byte sekunde, minute, stunde;
   leseDS3231zeit(&sekunde, &minute, &stunde);   // Daten vom DS3231 holen
-  display.setTextSize(4);
-  display.setCursor(7, 24);
-  if (stunde < 10) {
-    zeit = "0";
-  }
-  zeit.concat(stunde);
-  zeit.concat(":");
-  if (minute < 10) {
-    zeit.concat("0");
-
-    //u8g2.draw2x2String(0,0,"0");
-  }
-
-
-  zeit.concat(minute);
-  display.println(zeit);
-  display.display();
-  display.clearDisplay();
-
+  time[0] = minute;
+  time[1] = stunde;
 }
 
 
@@ -105,8 +85,31 @@ int tempDS3231() {
 
 //Getter und Setter, benutzen teilweise weitere Funktionen
 void getClock() {
-  zeigeZeit();
+  getZeit();
+  String zeit;
+  byte stunde, minute;
+  display.setTextSize(4);
+  display.setCursor(7, 30);
+  if (minute != time[0]) {
+    
+    minute = time[0];
+    stunde = time[1];
+    if (stunde < 10) {
+      zeit = "0";
+    }
+    zeit.concat(stunde);
+    zeit.concat(":");
+    if (minute < 10) {
+      zeit.concat("0");
+    }
 
+    zeit.concat(minute);
+    display.print(zeit);
+
+    display.display();
+
+    display.clearDisplay();
+  }
 }
 
 void getRPM() {
@@ -172,12 +175,15 @@ void getGPS() {
   display.clearDisplay();
 }
 void getAirTemp() {
+  int temp;
+  if(temp != tempDS3231()){
+    temp = tempDS3231();
   display.setTextSize(2);
   display.setCursor(45, 0);
   display.println("Air");
   display.setTextSize(4);
   display.setCursor(15, 30);
-  display.print(tempDS3231());
+  display.print(temp);
   display.setCursor(65, 25);
   display.setTextSize(3);
   display.print(char(9));
@@ -186,15 +192,56 @@ void getAirTemp() {
   display.println("C");
   display.display();
   display.clearDisplay();
+  }
+}
+
+void printBar(int state){
+  int posX = 3;
+  int posY = 60;
+  int rectWidth = 24;
+  int rectHeight = 4;
+  int space = 25;
+  if(state == 0 ){
+  display.fillRect(posX,posY,rectWidth,rectHeight,WHITE);
+  display.drawRect(posX+space*1,posY,rectWidth,rectHeight,WHITE);
+  display.drawRect(posX+space*2,posY,rectWidth,rectHeight,WHITE);
+  display.drawRect(posX+space*3,posY,rectWidth,rectHeight,WHITE);
+  display.drawRect(posX+space*4,posY,rectWidth,rectHeight,WHITE);
+  }
+  if(state == 1 ){
+  display.drawRect(posX,posY,rectWidth,rectHeight,WHITE);
+  display.fillRect(posX+space*1,posY,rectWidth,rectHeight,WHITE);
+  display.drawRect(posX+space*2,posY,rectWidth,rectHeight,WHITE);
+  display.drawRect(posX+space*3,posY,rectWidth,rectHeight,WHITE);
+  display.drawRect(posX+space*4,posY,rectWidth,rectHeight,WHITE);
+  }
+  if(state == 2 ){
+  display.drawRect(posX,posY,rectWidth,rectHeight,WHITE);
+  display.drawRect(posX+space*1,posY,rectWidth,rectHeight,WHITE);
+  display.fillRect(posX+space*2,posY,rectWidth,rectHeight,WHITE);
+  display.drawRect(posX+space*3,posY,rectWidth,rectHeight,WHITE);
+  display.drawRect(posX+space*4,posY,rectWidth,rectHeight,WHITE);
+  }
+  if(state == 3 ){
+  display.drawRect(posX,posY,rectWidth,rectHeight,WHITE);
+  display.drawRect(posX+space*1,posY,rectWidth,rectHeight,WHITE);
+  display.drawRect(posX+space*2,posY,rectWidth,rectHeight,WHITE);
+  display.fillRect(posX+space*3,posY,rectWidth,rectHeight,WHITE);
+  display.drawRect(posX+space*4,posY,rectWidth,rectHeight,WHITE);
+  }
+  if(state == 4 ){
+  display.drawRect(posX,posY,rectWidth,rectHeight,WHITE);
+  display.drawRect(posX+space*1,posY,rectWidth,rectHeight,WHITE);
+  display.drawRect(posX+space*2,posY,rectWidth,rectHeight,WHITE);
+  display.drawRect(posX+space*3,posY,rectWidth,rectHeight,WHITE);
+  display.fillRect(posX+space*4,posY,rectWidth,rectHeight,WHITE);
+  }
 }
 
 
 
-
-
-
-
-void showDisp() {
+void loop() {
+  printBar(count);
   if (count == 0) {
     getClock();
   }
@@ -210,19 +257,5 @@ void showDisp() {
   else if (count == 4) {
     getSpeed();
   }
-
-  //  else if (count == 5) {
-  //  getDirection();
-  //}
-  //  else if (count == 6) {
-  //    getGPS();
-  //  }
-
-}
-
-void loop() {
-
-
-  showDisp();
-  delay(1000);
+  //delay(1000);
 }
