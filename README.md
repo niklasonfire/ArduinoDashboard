@@ -1,2 +1,2 @@
 # ArduinoDashboard
-Dashboard based on Arduino UNO
+Dashboard based on Arduino Nano
