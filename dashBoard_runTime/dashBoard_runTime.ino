@@ -183,6 +183,9 @@ void getAirTemp() {
   display.println("Air");
   display.setTextSize(4);
   display.setCursor(15, 30);
+  if(temp <10){
+    display.print(" ");
+  }
   display.print(temp);
   display.setCursor(65, 25);
   display.setTextSize(3);
