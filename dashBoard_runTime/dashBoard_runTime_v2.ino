@@ -1,3 +1,5 @@
+#include <DallasTemperature.h>
+#include <OneWire.h>
 #include <SPI.h>                      //Serial Peripheral Interface (SPI) library for synchronous serial data protocol
 #include <Wire.h>                     //Wire library used for I2C communication: Arduino Pro Mini pins used = A4 (SDA) and A5 (SCL)
 
@@ -7,21 +9,25 @@
 #include <TinyGPS++.h>
 
 #define SerialMonitor Serial
-   const double EIFFEL_TOWER_LAT = 48.85826;
-const double EIFFEL_TOWER_LNG = 2.294516;
+#define ONE_WIRE_BUS 5
 int button = 2;
 volatile byte state = LOW ;
 int count;
 int progs;
 
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature temp(&oneWire);
 SoftwareSerial ss(4, 3);
 TinyGPSPlus gps;
 SSD1306AsciiAvrI2c display;
 
 void setup() {
-  progs = 3;
+  progs = 4;
+
   ss.begin(9600);
   Serial.begin(9600);
+  temp.begin();
+
   attachInterrupt(digitalPinToInterrupt(button), counT, RISING);
   display.begin(&Adafruit128x64, 0x3C);
   display.setFont(fixed_bold10x15);
@@ -57,7 +63,7 @@ static void smartDelay(unsigned long ms) {
 }
 void printRPM() {
   display.set1X();
-  display.setCursor(36, 0);
+  display.setCursor(40, 0);
   display.println("RPM");
   display.set2X();
   display.setCursor(15, 4);
@@ -73,7 +79,8 @@ void printTime() {
     display.clear();
   }
   else {
-    display.print(gps.time.hour() + 2);
+    if (gps.time.hour() < 10) display.print('0');
+    display.print(gps.time.hour() + 1);
     display.print(":");
     if (gps.time.minute() < 10) display.print('0');
     display.print(gps.time.minute());
@@ -83,66 +90,67 @@ void printTime() {
 
 void printSpeed() {
   int speed;
+
+
   display.set2X();
   if (!gps.speed.isValid()) {
     display.print("No GPS");
     display.clear();
   }
   speed = gps.speed.kmph();
+
   display.set1X();
   display.setCursor(35, 0);
   display.println("Speed");
   display.set2X();
   display.setCursor(15, 4);
-  if(speed<5)
-    speed = 0;  
+
   if (speed < 10)
-    display.print("  ");
+    display.print(" ");
   if (speed < 100)
     display.print(" ");
   display.print(speed);
+  display.set1X();
+  display.print("Km/h");
+
+}
+
+
+void printOilTemp() {
+
+  temp.requestTemperatures();
+  int tempC = (int) temp.getTempCByIndex(0);
+  display.set1X();
+  display.setCursor(40, 0);
+  display.println("Oil");
+  display.set2X();
+  display.setCursor(15, 4);
+  display.print(tempC);
+  display.set1X();5
+  display.print("*");
+  display.println("C");
 
 }
 
 
 
-
-
-
 void loop() {
-  display.set1X();
-  display.setCursor(118,0);
-  display.print(gps.satellites.value());
-
+  /*display.set1X();
+    display.setCursor(118,0);
+    display.print(gps.satellites.value());
+  */
   if (count == 0)
-     printTime();
+    printTime();
 
   if (count == 1)
     printSpeed();
-   
+
 
   if (count == 2)
-   printRPM();
+    printRPM();
 
- 
-double distanceKm =
-  gps.distanceBetween(
-    gps.location.lat(),
-    gps.location.lng(),
-    EIFFEL_TOWER_LAT,
-    EIFFEL_TOWER_LNG) / 1000.0;
-double courseTo =
- gps.courseTo(
-    gps.location.lat(),
-    gps.location.lng(),
-    EIFFEL_TOWER_LAT,
-    EIFFEL_TOWER_LNG);
-Serial.print("Distance (km) to Eiffel Tower: ");
-Serial.println(distanceKm);
-Serial.print("Course to Eiffel Tower: ");
-Serial.println(courseTo);
-Serial.print("Human directions: ");
-Serial.println(gps.cardinal(courseTo));
+  if (count == 3)
+    printOilTemp();
 
   smartDelay(1000);
 
