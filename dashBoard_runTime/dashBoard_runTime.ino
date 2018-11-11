@@ -1,4 +1,4 @@
-//Ich habe etwas geändert..
+//Ubuntu hat jetzt auch mal was geändert
 
 #include <DallasTemperature.h>
 #include <OneWire.h>
