@@ -25,7 +25,7 @@ SSD1306AsciiAvrI2c display;
 
 void setup() {
   progs = 4;
-
+   pinMode(LED_BUILTIN, OUTPUT);
   ss.begin(9600);
   Serial.begin(9600);
   temp.begin();
@@ -117,21 +117,31 @@ void printSpeed() {
 
 }
 
-
+int tempTemp;
 void printOilTemp() {
-
+  
   temp.requestTemperatures();
+  
   int tempC = (int) temp.getTempCByIndex(0);
+  
+    if(tempC == -127){
+     tempC = tempTemp;
+      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+      delay(1000);                       // wait for a second
+      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+      display.clear();
+    }
+    
   display.set1X();
   display.setCursor(40, 0);
   display.println("Oil");
   display.set2X();
   display.setCursor(15, 4);
   display.print(tempC);
-  display.set1X();5
+  display.set1X();
   display.print("*");
   display.println("C");
-
+  tempTemp = tempC;
 }
 
 
